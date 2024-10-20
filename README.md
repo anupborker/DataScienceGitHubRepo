@@ -10,7 +10,7 @@ This is the index of all assignments. Click on the titles to navigate to the res
 
 | **Sr. No** | **Date**     | **Title**                                       | **Link**                                |
 |------------|--------------|-------------------------------------------------|-----------------------------------------|
-| 1          | 27/06/24     | Linked List - Find Middle Element               | [Assignment 1](./assignments/assignment_1) |
+| 1          | 27/06/24     | Linked List - Find Middle Element               | [Assignment 1](./assignment_1) |
 | 2          | 04/07/24     | Plotting Graphs - Gender and Pass/Fail Ratios   | [Assignment 2](./assignments/assignment_2) |
 | 3          | 11/07/24     | Matrix Multiplication                           | [Assignment 3](./assignments/assignment_3) |
 | 4          | 18/07/24     | Name List Manipulation                          | [Assignment 4](./assignments/assignment_4) |
