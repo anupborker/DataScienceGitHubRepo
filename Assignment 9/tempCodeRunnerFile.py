@@ -1,83 +1,120 @@
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize, sent_tokenize
+import matplotlib.pyplot as plt
+from nltk.sentiment import SentimentIntensityAnalyzer
 
-# Download necessary NLTK resources
-nltk.download('punkt')
-nltk.download('stopwords')
+# Ensure necessary NLTK resources are downloaded
+def download_nltk_resources():
+    """Download necessary NLTK resources if not already available."""
+    resources = ['punkt', 'stopwords', 'vader_lexicon']
+    for resource in resources:
+        try:
+            if resource == 'punkt':
+                nltk.data.find('tokenizers/punkt')
+            elif resource == 'stopwords':
+                nltk.data.find('corpora/stopwords')
+            else:
+                nltk.data.find('sentiment/vader_lexicon')
+        except LookupError:
+            nltk.download(resource)
 
-def summarize_text(content):
-    # Set of stop words for filtering
+download_nltk_resources()
+
+def create_summary(input_text):
+    """Create a summary of the input text by scoring sentences based on word frequencies."""
     stop_words_set = set(stopwords.words('english'))
-    tokenized_words = word_tokenize(content.lower())
+    tokens = word_tokenize(input_text.lower())
 
-    # Remove stop words from the tokenized words
-    filtered_words = [word for word in tokenized_words if word.isalpha() and word not in stop_words_set]
+    # Remove stop words
+    filtered_words = [word for word in tokens if word.isalpha() and word not in stop_words_set]
 
     # Calculate word frequencies
-    word_frequency = nltk.FreqDist(filtered_words)
+    frequency_distribution = nltk.FreqDist(filtered_words)
 
-    # Split the text into sentences
-    sentence_list = sent_tokenize(content)
+    # Tokenize input text into sentences
+    sentence_list = sent_tokenize(input_text)
 
-    # Check if there are sentences to score
     if not sentence_list:
-        return "No sentences found to summarize."
+        return "No sentences available for summarization."
 
-    # Dictionary to hold scores for each sentence
-    sentence_score_map = {}
+    # Score sentences based on word frequencies
+    sentence_scores_dict = {}
     for sentence in sentence_list:
         for word in word_tokenize(sentence.lower()):
-            if word in word_frequency:
-                # Score sentences based on the frequency of words
-                if sentence not in sentence_score_map:
-                    sentence_score_map[sentence] = word_frequency[word]
+            if word in frequency_distribution:
+                if sentence not in sentence_scores_dict:
+                    sentence_scores_dict[sentence] = frequency_distribution[word]
                 else:
-                    sentence_score_map[sentence] += word_frequency[word]
+                    sentence_scores_dict[sentence] += frequency_distribution[word]
 
-    # Sort sentences by score in descending order
-    if not sentence_score_map:
-        return "No sentences scored for summary."
+    if not sentence_scores_dict:
+        return "No sentences could be scored for the summary."
 
-    top_sentence_list = sorted(sentence_score_map, key=sentence_score_map.get, reverse=True)[:3]  # Select top 3 sentences
+    # Sort and select top sentences
+    top_sentences = sorted(sentence_scores_dict, key=sentence_scores_dict.get, reverse=True)[:3]  # Select top 3 sentences
+    summary_result = ' '.join(top_sentences).replace(";", ".").replace(".", ". ").strip()
 
-    # Generate summary from the top sentences
-    summary_result = ' '.join(top_sentence_list)
+    return summary_result
 
-    # Clean up sentence endings for improved readability
-    summary_result = summary_result.replace(";", ".").replace(".", ". ")
+# Read reviews from a specified text file
+input_file = 'input.txt'  # Update with your actual file path
+with open(input_file, 'r') as file:
+    review_lines = file.readlines()
 
-    return summary_result.strip()
+# Initialize sentiment analysis tool
+sentiment_analyzer = SentimentIntensityAnalyzer()
 
-# Load reviews from the specified input file
-input_file_path = 'input.txt'  # Update with your actual file path
-with open(input_file_path, 'r') as input_file:
-    review_lines = input_file.readlines()
-
-# Classify reviews based on simple sentiment analysis
-positive_review_list = []
-neutral_review_list = []
-negative_review_list = []
+# Classify reviews based on sentiment
+positive_list = []
+neutral_list = []
+negative_list = []
 
 for line in review_lines:
     cleaned_review = line.strip()
-    if "fantastic" in cleaned_review or "love" in cleaned_review or "great" in cleaned_review:
-        positive_review_list.append(cleaned_review)
-    elif "decent" in cleaned_review or "average" in cleaned_review or "okay" in cleaned_review:
-        neutral_review_list.append(cleaned_review)
+    sentiment_score = sentiment_analyzer.polarity_scores(cleaned_review)
+    compound_score = sentiment_score['compound']
+
+    if compound_score >= 0.5:
+        positive_list.append(cleaned_review)
+    elif compound_score <= -0.2:
+        negative_list.append(cleaned_review)
     else:
-        negative_review_list.append(cleaned_review)
+        neutral_list.append(cleaned_review)
 
 # Summarize reviews in each sentiment category
-positive_reviews_combined = "\n".join(positive_review_list)
-neutral_reviews_combined = "\n".join(neutral_review_list)
-negative_reviews_combined = "\n".join(negative_review_list)
+positive_reviews_text = "\n".join(positive_list)
+neutral_reviews_text = "\n".join(neutral_list)
+negative_reviews_text = "\n".join(negative_list)
 
-positive_review_summary = summarize_text(positive_reviews_combined)
-neutral_review_summary = summarize_text(neutral_reviews_combined)
-negative_review_summary = summarize_text(negative_reviews_combined)
+positive_summary_result = create_summary(positive_reviews_text)
+neutral_summary_result = create_summary(neutral_reviews_text)
+negative_summary_result = create_summary(negative_reviews_text)
 
 # Output the summaries
-print("Summary of Positive Reviews:", positive_review_summary)
-print("Summary of Neutral Reviews:", neutral_review_summary)
-print("Summary of Negative Reviews:", negative_review_summary)
+print("Positive Review Summary:", positive_summary_result)
+print("Neutral Review Summary:", neutral_summary_result)
+print("Negative Review Summary:", negative_summary_result)
+
+# Save summaries to corresponding files
+with open('positive_review_summary.txt', 'w') as pos_file:
+    pos_file.write(positive_summary_result)
+
+with open('neutral_review_summary.txt', 'w') as neu_file:
+    neu_file.write(neutral_summary_result)
+
+with open('negative_review_summary.txt', 'w') as neg_file:
+    neg_file.write(negative_summary_result)
+
+print("Summaries have been saved to positive_review_summary.txt, neutral_review_summary.txt, and negative_review_summary.txt.")
+
+# Plotting the count of reviews in each sentiment category
+categories = ['Positive', 'Neutral', 'Negative']
+counts_list = [len(positive_list), len(neutral_list), len(negative_list)]
+
+plt.bar(categories, counts_list, color=['green', 'gray', 'red'])
+plt.title('Review Count by Sentiment Category')
+plt.xlabel('Sentiment Category')
+plt.ylabel('Review Count')
+plt.ylim(0, max(counts_list) + 5)  # Adjust y-axis limit
+plt.show()
